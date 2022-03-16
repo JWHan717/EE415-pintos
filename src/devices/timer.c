@@ -94,6 +94,11 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+
+    /* Implement here:
+    If there is time left till the wakeup, remove the caller thread
+    from ready_list and insert it to sleep queue.
+    */
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -165,13 +170,21 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+
+  /* code to add: 
+	check sleep list and the global tick.
+	find any threads to wake up,
+	move them to the ready list if necessary.
+	update the global tick.
+	*/
+
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
