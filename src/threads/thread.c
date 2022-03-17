@@ -301,15 +301,45 @@ thread_exit (void)
   NOT_REACHED ();
 }
 
-void thread_sleep(int64_t ticks){
-  
   /* if the current thread is not idle thread,
 	change the state of the caller thread to BLOCKED,
 	store the local tick to wake up,
 	update the global tick if necessary,
 	and call schedule() */
-  /* When you manipulate thread list, disable interrupt! */
+void thread_sleep(int64_t ticks){
+  struct thread *curr;
+  enum intr_level old_level;
+  
+  old_level = intr_disable();
+  curr = thread_current();
 
+  ASSERT(curr != idle_thread);
+  
+  curr->wakeup_tick = ticks;
+  list_push_back(&sleep_list, &curr->elem);
+  thread_block();
+
+  intr_set_level(old_level);
+
+}
+
+  /* check sleep list and the global tick.
+	find any threads to wake up,
+	move them to the ready list if necessary.
+	update the global tick.
+	*/
+void thread_wakeup (int64_t ticks) {
+  struct list_elem *e = list_begin(&sleep_list);
+
+  while (e != list_end(&sleep_list)) {
+    struct thread *t = list_entry (e, struct thread, elem);
+    if (t->wakeup_tick <= ticks) {
+      e = list_remove(e);
+      thread_unblock(t);
+    }else {
+      e = list_next(e);
+    }
+  }
 }
 
 

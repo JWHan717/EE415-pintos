@@ -92,13 +92,7 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
-
-    /* Implement here:
-    If there is time left till the wakeup, remove the caller thread
-    from ready_list and insert it to sleep queue.
-    */
+  thread_sleep(start + ticks);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -178,13 +172,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
-  /* code to add: 
-	check sleep list and the global tick.
-	find any threads to wake up,
-	move them to the ready list if necessary.
-	update the global tick.
-	*/
-
+  thread_wakeup(ticks);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
