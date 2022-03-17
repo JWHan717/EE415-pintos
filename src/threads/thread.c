@@ -206,6 +206,14 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  /* compare the priorities of the currently running thread
+  and the newly inserted one. Yield the CPU if the newly
+  arriving thread has higher priority */
+  const struct thread *curr = thread_current();
+  if(curr->priority < priority) {
+    thread_yield();
+  }
+
   return tid;
 }
 
@@ -242,7 +250,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, thread_compare_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -390,6 +399,14 @@ int
 thread_get_priority (void) 
 {
   return thread_current ()->priority;
+}
+
+bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+
+  if(thread_a->priority > thread_b->priority) return true;
+  return false;
 }
 
 /* Sets the current thread's nice value to NICE. */
