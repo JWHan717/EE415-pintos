@@ -464,7 +464,7 @@ thread_get_recent_cpu (void)
 void
 thread_calculate_priority(struct thread *t, void *aux UNUSED)
 {
-  t -> priority = PRI_MAX - (t->recent_cpu)/4 - (t->nice)*2;
+  t -> priority = PRI_MAX - fp_to_int_nearest(fp_div_int(t->recent_cpu,4)) - (t->nice)*2;
 }
 
 void
@@ -477,8 +477,8 @@ thread_calculate_recent_cpu(struct thread *t, void *aux UNUSED)
 void
 thread_calculate_load_avg(void)
 {
-  int ready_threads = int_to_fp(list_size(&ready_list));
-  load_avg = fp_add(fp_mult_int(fp_div_int(load_avg,60),59),fp_div_int(ready_threads,60));
+  int ready_threads = list_size(&ready_list);
+  load_avg = fp_add(fp_mult_int(fp_div_int(load_avg,60),59),fp_div_int(int_to_fp(ready_threads),60));
 }
 
 void
