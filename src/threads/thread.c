@@ -217,10 +217,7 @@ thread_create (const char *name, int priority,
   /* compare the priorities of the currently running thread
   and the newly inserted one. Yield the CPU if the newly
   arriving thread has higher priority */
-  const struct thread *curr = thread_current();
-  if(curr->priority < priority) {
-    thread_yield();
-  }
+  thread_compare_new_priority();
 
   return tid;
 }
@@ -408,10 +405,9 @@ thread_set_priority (int new_priority)
   if(thread_mlfqs) return thread_current()->priority;
   else{
     thread_current ()->priority = new_priority;
-    struct list_elem *e = list_head(&sleep_list);
-    struct thread *t = list_entry (e, struct thread, elem);
-    if (new_priority < t ->priority)
-      thread_yield();
+
+    thread_reset_priority();
+    thread_compare_new_priority();
   }
 }
 
@@ -427,8 +423,56 @@ bool thread_compare_priority (const struct list_elem *a, const struct list_elem 
   struct thread *thread_a = list_entry(a, struct thread, elem);
   struct thread *thread_b = list_entry(b, struct thread, elem);
 
-  if(thread_a->priority > thread_b->priority) return true;
-  return false;
+  return (thread_a->priority > thread_b->priority);
+}
+
+bool thread_compare_d_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+  struct thread *thread_a = list_entry(a, struct thread, d_elem);
+  struct thread *thread_b = list_entry(b, struct thread, d_elem);
+
+  return (thread_a->priority > thread_b->priority);
+}
+
+void thread_donate_priority(void) {
+  struct thread *curr = thread_current();
+
+  for (int i=0; i<10; i++){
+    if (curr->wait_on_lock == NULL) {
+      break;
+    }
+
+    struct thread *t = curr->wait_on_lock->holder;
+    t->priority = curr->priority;
+    curr = t;
+  }
+}
+
+void thread_reset_priority (void) {
+  /* Reset priority: if donations list is empty, set priority to initial value.
+  Otherwise, set priority to highest value in donations list. */
+  struct thread *curr = thread_current();
+
+  if(list_empty(&curr->donations)) {
+    curr->priority = curr->initial_priority;
+  } else {
+    struct thread *highest;
+    highest = list_entry(list_max(&curr->donations, thread_compare_d_priority, NULL), struct thread, d_elem);
+    if (highest->priority > curr->priority) {
+      curr->priority = highest->priority;
+    }
+  }
+}
+
+/* compare the priorities of the currently running thread
+and the newly inserted one. Yield the CPU if the newly
+arriving thread has higher priority. */
+void thread_compare_new_priority (void) {
+  if (!list_empty(&ready_list)){
+    struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
+    if (thread_current()->priority < t->priority){
+      thread_yield();
+    }
+  }
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -586,6 +630,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t -> nice = 0;
   t -> recent_cpu = 0;
   t->magic = THREAD_MAGIC;
+
+  t->initial_priority = priority;
+  list_init(&t->donations);
+  t->wait_on_lock = NULL;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

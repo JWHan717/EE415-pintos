@@ -172,6 +172,17 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
+  enum intr_level old_level = intr_disable();
+
+  if (ticks % TIMER_FREQ == 0) {
+    thread_foreach(thread_recalculate_all, NULL);
+  }
+  if (ticks % 4 == 0) {
+    thread_foreach(thread_calculate_priority, NULL);
+  }
+
+  intr_set_level(old_level);
+
   thread_wakeup(ticks);
 }
 

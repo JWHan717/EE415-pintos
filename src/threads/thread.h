@@ -93,6 +93,11 @@ struct thread
     int64_t wakeup_tick;                /* tick till wake up */
     struct list_elem allelem;           /* List element for all threads list. */
 
+    int initial_priority;
+    struct list donations;
+    struct list_elem d_elem;
+    struct lock *wait_on_lock;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -139,6 +144,10 @@ void thread_foreach (thread_action_func *, void *);
 int thread_get_priority (void);
 void thread_set_priority (int);
 bool thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool thread_compare_d_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+void thread_donate_priority (void);
+void thread_reset_priority (void);
+void thread_compare_new_priority (void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
