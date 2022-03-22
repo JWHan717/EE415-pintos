@@ -122,6 +122,7 @@ sema_up (struct semaphore *sema)
   }
   sema->value++;
   intr_set_level (old_level);
+  thread_compare_new_priority();
 }
 
 static void sema_test_helper (void *sema_);
@@ -201,25 +202,29 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   struct thread *curr = thread_current();
-
+  enum intr_level old_level;
   /* priority donation is done only when
     not using advanced scheduler */
+  old_level = intr_disable ();
   if (!thread_mlfqs) {
-
+    
     /* 1. If lock is not available, store address of the lock.
     2. Store the current priority and maintain donated threads on list.
     3. Donate priority. */
+    
     if (lock->holder != NULL) {
       curr->wait_on_lock = lock;
       list_insert_ordered(&lock->holder->donations, &curr->d_elem, thread_compare_d_priority, NULL);
       thread_donate_priority();
-      thread_yield();
+      //thread_yield();
     }
+    
   }
   
   sema_down (&lock->semaphore);
   curr->wait_on_lock = NULL;
   lock->holder = curr;
+  intr_set_level (old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -346,13 +351,16 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
-  
+  enum intr_level old_level;
+
+  old_level = intr_disable ();
   sema_init (&waiter.semaphore, 0);
   // list_push_back (&cond->waiters, &waiter.elem);
   list_insert_ordered (&cond->waiters, &waiter.elem, sema_compare_priority, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
+  intr_set_level (old_level);
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
