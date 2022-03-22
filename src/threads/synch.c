@@ -259,7 +259,7 @@ lock_release (struct lock *lock)
 
     /* When the lock is released, remove the thread that
     holds the lock on donation list and set priority properly. */
-    struct thread *curr = thread_current();
+    struct thread *curr = lock->holder; //thread_current();
     struct list_elem *e;
 
     for (e = list_begin(&curr->donations); e != list_end(&curr->donations); e = list_next(e)) {
@@ -270,7 +270,7 @@ lock_release (struct lock *lock)
     }
 
     thread_reset_priority();
-    thread_yield();
+    //thread_yield();
   }
 
   lock->holder = NULL;
