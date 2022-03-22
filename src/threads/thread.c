@@ -402,7 +402,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  if(thread_mlfqs) return thread_current()->priority;
+  if(thread_mlfqs) return;
   else{
     thread_current ()->priority = new_priority;
 
@@ -479,41 +479,56 @@ void thread_compare_new_priority (void) {
 void
 thread_set_nice (int new_nice) 
 {
+  enum intr_level old_level = intr_disable();
   thread_current() -> nice = new_nice;
+  thread_calculate_priority(thread_current(), NULL);
+  thread_compare_new_priority();
+  intr_set_level(old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  struct thread *cur = thread_current();
-  return cur->nice;
+  enum intr_level old_level = intr_disable();
+  int nice = thread_current()->nice;
+  intr_set_level(old_level);
+  return nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 { 
-  return fp_mult_int (load_avg, 100);
+  enum intr_level old_level = intr_disable();
+  int avg = fp_to_int_zero(fp_mult_int(load_avg, 100));
+  intr_set_level(old_level);
+  return avg;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  struct thread *cur = thread_current();
-  return fp_mult_int (cur->recent_cpu, 100);
+  enum intr_level old_level = intr_disable();
+  int cpu = fp_to_int_zero(fp_mult_int(thread_current()->recent_cpu, 100));
+  intr_set_level(old_level);
+  return cpu;
 }
 
 void
 thread_calculate_priority(struct thread *t, void *aux UNUSED)
 {
-  t -> priority = PRI_MAX - fp_to_int_nearest(fp_div_int(t->recent_cpu,4)) - (t->nice)*2;
+  if (t == idle_thread) return;
+  t -> priority = PRI_MAX - fp_to_int_zero(fp_add_int(fp_div_int(t->recent_cpu, 4), t->nice*2));
+  if (t->priority > PRI_MAX) t->priority = PRI_MAX;
+  if (t->priority < PRI_MIN) t->priority = PRI_MIN;
 }
 
 void
 thread_calculate_recent_cpu(struct thread *t, void *aux UNUSED)
 {
+  if(t == idle_thread) return;
   int decay = fp_div(fp_mult_int(load_avg,2),fp_add_int(fp_mult_int(load_avg,2),1));
   t->recent_cpu = fp_add_int(fp_mult(decay,(t->recent_cpu)),t->nice);
 }
@@ -521,23 +536,24 @@ thread_calculate_recent_cpu(struct thread *t, void *aux UNUSED)
 void
 thread_calculate_load_avg(void)
 {
-  int ready_threads = list_size(&ready_list);
-  load_avg = fp_add(fp_mult_int(fp_div_int(load_avg,60),59),fp_div_int(int_to_fp(ready_threads),60));
+  int ready_threads = ((thread_current() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list) + 1);
+  load_avg = fp_add(fp_mult(fp_div(int_to_fp(59), int_to_fp(60)), load_avg), fp_mult_int(fp_div(int_to_fp(1), int_to_fp(60)), ready_threads));
 }
 
 void
 thread_increase_recent_cpu(void)
 {
   struct thread *cur = thread_current();
-  cur -> recent_cpu = fp_add_int(cur->recent_cpu,1);
+  if (cur != idle_thread){
+    cur -> recent_cpu = fp_add_int(cur->recent_cpu,1);
+  }
 }
 
 void
-thread_recalculate_all(struct thread *t, void *aux UNUSED)
+thread_recalculate_all(void)
 {
   thread_calculate_load_avg();
-  thread_calculate_recent_cpu(t,aux);
-  thread_calculate_priority(t,aux);
+  thread_foreach(thread_calculate_recent_cpu, NULL);
 }
 
 
