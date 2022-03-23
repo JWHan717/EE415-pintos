@@ -103,7 +103,7 @@ thread_init (void)
   list_init (&sleep_list);
   list_init (&all_list);
 
-  global_tick = 0;
+  global_tick = INT64_MAX;
   load_avg = 0;
 
   /* Set up a thread structure for the running thread. */
