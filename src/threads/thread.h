@@ -98,6 +98,8 @@ struct thread
     struct list_elem d_elem;
     struct lock *wait_on_lock;
 
+    int64_t start_ticks;                    /* For latency measurement. */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

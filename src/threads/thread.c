@@ -12,6 +12,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "threads/fixed-point.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -311,6 +312,10 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
+  if(thread_report_latency){
+    int64_t ticks = timer_ticks() - thread_current()->start_ticks;
+    printf("Thread %s completed in %d ticks.\n", thread_current()->name, ticks);
+  }
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -406,6 +411,7 @@ thread_set_priority (int new_priority)
   if(thread_mlfqs) return;
   else{
     thread_current ()->priority = new_priority;
+    thread_current()->initial_priority = new_priority;
 
     thread_reset_priority();
     thread_compare_new_priority();
@@ -452,10 +458,9 @@ void thread_reset_priority (void) {
   /* Reset priority: if donations list is empty, set priority to initial value.
   Otherwise, set priority to highest value in donations list. */
   struct thread *curr = thread_current();
+  curr->priority = curr->initial_priority;
 
-  if(list_empty(&curr->donations)) {
-    curr->priority = curr->initial_priority;
-  } else {
+  if(!list_empty(&curr->donations)) {
     struct thread *highest;
     highest = list_entry(list_max(&curr->donations, thread_compare_d_priority, NULL), struct thread, d_elem);
     if (highest->priority > curr->priority) {
@@ -469,6 +474,7 @@ and the newly inserted one. Yield the CPU if the newly
 arriving thread has higher priority. */
 void thread_compare_new_priority (void) {
   if (!list_empty(&ready_list)){
+    list_sort(&ready_list, thread_compare_priority, 0);
     struct thread *t = list_entry(list_front(&ready_list), struct thread, elem);
     if (thread_current()->priority < t->priority){
       thread_yield();
@@ -651,6 +657,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->initial_priority = priority;
   list_init(&t->donations);
   t->wait_on_lock = NULL;
+
+  t->start_ticks = timer_ticks();
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

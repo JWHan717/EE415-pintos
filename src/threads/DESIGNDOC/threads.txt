@@ -8,8 +8,7 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Joowon Han <cony717@kaist.ac.kr>
 FirstName LastName <email@domain.example>
 
 ---- PRELIMINARIES ----
@@ -29,6 +28,22 @@ FirstName LastName <email@domain.example>
 >> A1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+-- struct thread (thread.h) --
+>> int nice:
+>> int recent_cpu:
+>> int64_t wakeup_tick:
+>> int initial_priority:
+>> struct list donations:
+>> struct list_elem d_elem:
+>> struct lock *wait_on_lock:
+>> int64_t start_ticks:
+
+-- global/static variables (thread.c) --
+>> static struct list sleep_list:
+>> static int global_tick:
+>> static int load_avg:
+
 
 ---- ALGORITHMS ----
 
