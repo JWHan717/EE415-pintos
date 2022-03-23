@@ -153,11 +153,25 @@ current design.
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
+If the current thread calls thread_set_priority() and another thread
+happens to call thread_donate_priority() to donate priority to the current
+thread at the same time, two different threads would try to access the
+same value at once, thus resulting in a race. In order to avoid this,
+our implementation disabled interruptions during lock acquisition which
+calls thread_donate_priority(). thread_set_priority() would not cause
+potential races otherwise because it only sets the priority of the current
+thread.
+
+
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
+Our design uses ordered insertion and sorting for the donations list, such
+that the highest priority thread is always at the front of the list.
+Compared to another design, which iterates through the donations list at
+every priority donation, this design takes much less time.
 
 
               ADVANCED SCHEDULER
