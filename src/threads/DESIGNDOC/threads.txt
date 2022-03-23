@@ -9,7 +9,7 @@
 >> Fill in the names and email addresses of your group members.
 
 Joowon Han <cony717@kaist.ac.kr>
-FirstName LastName <email@domain.example>
+Seoyoung Hwang <hsyng@kaist.ac.kr>
 
 ---- PRELIMINARIES ----
 
@@ -20,6 +20,8 @@ FirstName LastName <email@domain.example>
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course staff.
 
+None.
+
                  ALARM CLOCK
                  ===========
 
@@ -29,20 +31,20 @@ FirstName LastName <email@domain.example>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
--- struct thread (thread.h) --
->> int nice:
->> int recent_cpu:
->> int64_t wakeup_tick:
->> int initial_priority:
->> struct list donations:
->> struct list_elem d_elem:
->> struct lock *wait_on_lock:
+-- added to struct thread (thread.h) --
+>> int nice:                    /* Nice value*/
+>> int recent_cpu:              /* recent cpu value */
+>> int64_t wakeup_tick:         /* tick till wake up */
+>> int initial_priority:        /* initial priority before priority donation */
+>> struct list donations:       /* list of donors */
+>> struct list_elem d_elem:     /* list element for donor list */
+>> struct lock *wait_on_lock:   /* lock that it waits for */
 >> int64_t start_ticks:
 
 -- global/static variables (thread.c) --
->> static struct list sleep_list:
->> static int global_tick:
->> static int load_avg:
+>> static struct list sleep_list:   /* List of processes in THREAD_BLOCKED state */
+>> static int global_tick:          /* minimum value of local ticks of the threads. */
+>> static int load_avg:             /* load average */
 
 
 ---- ALGORITHMS ----
@@ -74,6 +76,13 @@ FirstName LastName <email@domain.example>
 >> B1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+-- added to struct thread (thread.h) --
+>> int initial_priority:        /* initial priority before priority donation */
+>> struct list donations:       /* list of donors */
+>> struct list_elem d_elem:     /* list element for donor list */
+>> struct lock *wait_on_lock:   /* lock that it waits for */
+
 
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
@@ -109,6 +118,14 @@ FirstName LastName <email@domain.example>
 >> C1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+-- added to struct thread (thread.h) --
+>> int nice:                    /* Nice value*/
+>> int recent_cpu:              /* recent cpu value */
+
+-- global/static variables (thread.c) --
+>> static int load_avg:             /* load average */
+
 
 ---- ALGORITHMS ----
 

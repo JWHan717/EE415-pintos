@@ -93,10 +93,10 @@ struct thread
     int64_t wakeup_tick;                /* tick till wake up */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    int initial_priority;
-    struct list donations;
-    struct list_elem d_elem;
-    struct lock *wait_on_lock;
+    int initial_priority;               /* initial priority before priority donation */
+    struct list donations;              /* list of donors */
+    struct list_elem d_elem;            /* list element for donor list */
+    struct lock *wait_on_lock;          /* lock that it waits for */
 
     int64_t start_ticks;                    /* For latency measurement. */
 
