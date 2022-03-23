@@ -189,18 +189,23 @@ ticks   A   B   C   A   B   C   to run
 -----  --  --  --  --  --  --   ------
  0      0   0   0  63  61  59      A
  4      4   0   0  62  61  59      A
- 8      8   0   0  61  61  59      B
-12      8   4   0  61  60  59      A
+ 8      8   0   0  61  61  59      A
+12      12  0   0  60  61  59      B
 16      12  4   0  60  60  59      B
 20      12  8   0  60  59  59      A
-24      16  8   0  59  59  59      C
-28      16  8   4  59  59  58      B
-32      16  12  4  59  58  58      A
+24      16  8   0  59  59  59      A
+28      20  8   0  58  59  59      C
+32      20  8   4  58  59  58      B
 36      20  12  4  58  58  58      C
 
 >> C3: Did any ambiguities in the scheduler specification make values
 >> in the table uncertain?  If so, what rule did you use to resolve
 >> them?  Does this match the behavior of your scheduler?
+    When multiple threads have highest priority, ambiguity occurs.
+    If so, let current thread keep running.
+    Yield the current thread only when its priority is not highest.
+    At that time, the head of ready list is least recently used thread of the highest priority.
+    
 
 >> C4: How is the way you divided the cost of scheduling between code
 >> inside and outside interrupt context likely to affect performance?
