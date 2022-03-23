@@ -22,6 +22,7 @@ Seoyoung Hwang <hsyng@kaist.ac.kr>
 
 None.
 
+
                  ALARM CLOCK
                  ===========
 
@@ -44,54 +45,48 @@ state.
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
-
-A timer_sleep() call gets current timer tick, then calls thread_sleep()
-function. This function blocks the current thread and inserts it to
-sleep_list, storing 'when to wake it up' in wakeup_tick.
-The timer interrupt handler increments the tick and calls the
-thread_wakeup() function, which checks if enough time has elapsed for any
-of the sleeping threads to wake up (i.e. unblocked). If so, the handler
-unblocks the thread and removes it from sleep_list.
+    A timer_sleep() call gets current timer tick, then calls thread_sleep()
+    function. This function blocks the current thread and inserts it to
+    sleep_list, storing 'when to wake it up' in wakeup_tick.
+    The timer interrupt handler increments the tick and calls the
+    thread_wakeup() function, which checks if enough time has elapsed for any
+    of the sleeping threads to wake up (i.e. unblocked). If so, the handler
+    unblocks the thread and removes it from sleep_list.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
-
-Whenever a thread is blocked, the thread_sleep() function checks for the
-minimum wakeup_tick value and stores it in the global_tick variable.
-The timer interrupt handler does not iterate through the sleep_list every
-time it is called, but compares the current tick with this global_tick
-to check if any thread is to be awoken.
+    Whenever a thread is blocked, the thread_sleep() function checks for the
+    minimum wakeup_tick value and stores it in the global_tick variable.
+    The timer interrupt handler does not iterate through the sleep_list every
+    time it is called, but compares the current tick with this global_tick
+    to check if any thread is to be awoken.
 
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
-
-timer_sleep() calls thread_sleep(), which immediately disables interrupts
-with start of execution. timer_sleep() asserts that the current interrupt
-level is INTR_ON, so a race would result in assertion failure.
-
+    timer_sleep() calls thread_sleep(), which immediately disables interrupts
+    with start of execution. timer_sleep() asserts that the current interrupt
+    level is INTR_ON, so a race would result in assertion failure.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
-
-timer_sleep() calls thread_sleep(), which immediately disables interrupts
-with start of execution. Any attempts to interrupt will be disabled until
-thread_sleep() completes execution and enables interruptions again.
+    timer_sleep() calls thread_sleep(), which immediately disables interrupts
+    with start of execution. Any attempts to interrupt will be disabled until
+    thread_sleep() completes execution and enables interruptions again.
 
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
-
-We considered sorting the sleep_list with respect to wakeup_tick, so that
-the front element would always be the first one to awake. However, this
-design is not as fast as the current design because the timer interruption
-handler would have to constantly peek at the first element of sleep_list;
-this would be slower than the simple comparison between integers as in the
-current design.
+    We considered sorting the sleep_list with respect to wakeup_tick, so that
+    the front element would always be the first one to awake. However, this
+    design is not as fast as the current design because the timer interruption
+    handler would have to constantly peek at the first element of sleep_list;
+    this would be slower than the simple comparison between integers as in the
+    current design.
 
 
              PRIORITY SCHEDULING
@@ -109,7 +104,6 @@ current design.
 >> struct list_elem d_elem: list element for donor list.
 >> struct lock *wait_on_lock: ock that the thread waits for.
 
-
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
@@ -125,6 +119,7 @@ current design.
     | t9  |<--...--|  t  |<--lock'-| curr  |
     +-----+        +-----+         +-------+
     ...           
+
 
 ---- ALGORITHMS ----
 
@@ -147,31 +142,30 @@ current design.
     2. Set priority properly.
     3. Release the semaphore.
 
+
 ---- SYNCHRONIZATION ----
 
 >> B6: Describe a potential race in thread_set_priority() and explain
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
-
-If the current thread calls thread_set_priority() and another thread
-happens to call thread_donate_priority() to donate priority to the current
-thread at the same time, two different threads would try to access the
-same value at once, thus resulting in a race. In order to avoid this,
-our implementation disabled interruptions during lock acquisition which
-calls thread_donate_priority(). thread_set_priority() would not cause
-potential races otherwise because it only sets the priority of the current
-thread.
+    If the current thread calls thread_set_priority() and another thread
+    happens to call thread_donate_priority() to donate priority to the current
+    thread at the same time, two different threads would try to access the
+    same value at once, thus resulting in a race. In order to avoid this,
+    our implementation disabled interruptions during lock acquisition which
+    calls thread_donate_priority(). thread_set_priority() would not cause
+    potential races otherwise because it only sets the priority of the current
+    thread.
 
 
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
-
-Our design uses ordered insertion and sorting for the donations list, such
-that the highest priority thread is always at the front of the list.
-Compared to another design, which iterates through the donations list at
-every priority donation, this design takes much less time.
+    Our design uses ordered insertion and sorting for the donations list, such
+    that the highest priority thread is always at the front of the list.
+    Compared to another design, which iterates through the donations list at
+    every priority donation, this design takes much less time.
 
 
               ADVANCED SCHEDULER
@@ -220,9 +214,14 @@ ticks   A   B   C   A   B   C   to run
     Yield the current thread only when its priority is not highest.
     At that time, the head of ready list is least recently used thread of the highest priority.
     
-
 >> C4: How is the way you divided the cost of scheduling between code
 >> inside and outside interrupt context likely to affect performance?
+    The priority, recent_cpu, and load_avg values are recalculated with the
+    timer interrupt handler. Thus, the functions that get or set those values
+    (and the nice value, which is related directly to priority) are all
+    executed outside interrupt context. This ensures that the values used by
+    the scheduler are not recalculated during reading or writing.
+
 
 ---- RATIONALE ----
 
@@ -230,6 +229,12 @@ ticks   A   B   C   A   B   C   to run
 >> disadvantages in your design choices.  If you were to have extra
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
+    In actual operating systems, there would be certain operations that
+    requires quick feedback from the user or CPU. In such cases, it would be
+    suitable to prepare multiple queues for ready threads based on their
+    priority or another characteristic. If we had extra time, we would have
+    not only implemented multiple ready queues but also implement a preemption
+    algorithm for these newly implemented queues.
 
 >> C6: The assignment explains arithmetic for fixed-point math in
 >> detail, but it leaves it open to you to implement it.  Why did you
@@ -237,6 +242,16 @@ ticks   A   B   C   A   B   C   to run
 >> abstraction layer for fixed-point math, that is, an abstract data
 >> type and/or a set of functions or macros to manipulate fixed-point
 >> numbers, why did you do so?  If not, why not?
+    We created a new header file (fixed-point.h), because (1) the fixed point
+    operations are used repetitively throughout the implementation and (2) a
+    separate header file is easier to read and understand. Fixed-point
+    operations were defined as functions in the header file, so that they can
+    be accessed easily and intuitively. However, since the number of
+    occurrences were not as many as we initially expected, we think that it
+    might have also been okay without this header file. Using function syntax
+    was confusing and misleading in some points, as they used commas and
+    multiple parentheses rather than actual operators.
+
 
                SURVEY QUESTIONS
                ================
